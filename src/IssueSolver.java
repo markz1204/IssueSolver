@@ -1,6 +1,7 @@
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
@@ -10,105 +11,57 @@ import java.util.stream.Stream;
  * Created by markz on 28/2/17.
  */
 public class IssueSolver {
-    static int TOTAL = 100;
-    static int C = 10;
 
-    public static void main(String[] args) throws InterruptedException, ExecutionException {
+    public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("****Enter 'q' to exit this program if you want****");
+
+
+        System.out.print("Enter a integer for N: ");
+
+        String nInput = scanner.next();
+
+        if("q".equals(nInput)) return;
+
+        int N = Integer.parseInt(nInput);
+
+        System.out.print("Enter a integer for C: ");
+
+        String cInput = scanner.next();
+
+        if("q".equals(cInput)) return;
+
+        int C = Integer.parseInt(cInput);
+
         BigInteger sum = BigInteger.ZERO;
 
-        int processPerThread = 1000000;
-        int threadCount = TOTAL%processPerThread == 0 ? TOTAL/processPerThread : TOTAL/processPerThread+1;
+        System.out.println("Start working:  (N= " + N + ", C=" + C + ")");
 
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-
-        Set<Callable<BigInteger>> tasks = new HashSet<>();
-
-        for(int i=1; i<=threadCount; i++){
-            if(i==threadCount){
-                System.out.println("In " + i + ": " + ((i - 1) * processPerThread + 1) + " to " + TOTAL);
-                tasks.add(new Task( (i-1) * processPerThread + 1, TOTAL));
-            }else {
-                System.out.println("In " + i + ": " + ((i - 1) * processPerThread + 1) + " to " + (i * processPerThread));
-                tasks.add(new Task( (i-1) * processPerThread + 1, i * processPerThread));
+        for (int i = 1; i <= N; i++) {
+            if (i == 1) continue;
+            int margin = i - C;
+            if (margin > 0) {
+                sum = sum.add(populateList(margin, i).parallel().reduce(BigInteger.ONE, (x, y) -> x.multiply(y)));
+            } else {
+                sum = sum.add(populateList(1, i).parallel().reduce(BigInteger.ONE, (x, y) -> x.multiply(y)));
             }
         }
 
-        long startTime = System.currentTimeMillis();
-
-        List<Future<BigInteger>> futures = executorService.invokeAll(tasks);
-
-        for(Future<BigInteger> future : futures){
-            sum = sum.add(future.get());
-        }
-
-        executorService.shutdown();
-
-        long endTime = System.currentTimeMillis();
-
         System.out.println("Result: " + sum);
 
-        long totalTime = endTime - startTime;
-        System.out.println("Takes: " + totalTime/1000 + "s");
-
-        /*
-        BigInteger sum = BigInteger.ZERO;
-
-        long startTime = System.currentTimeMillis();
-
-        for(int i=1; i<=TOTAL; i++){
-
-            if (i==1) continue;
-
-            int margin = i -C;
-
-            if(margin > 0){
-                sum = sum.add(populateList(margin, i).parallel().reduce(BigInteger.ONE, (x, y)-> x.multiply(y)));
-            }else{
-                sum = sum.add(populateList(1, i).parallel().reduce(BigInteger.ONE, (x, y)-> x.multiply(y)));
-            }
-
-        }
-
-        System.out.println("Result: " + sum);
-        long endTime = System.currentTimeMillis();
-
-        long totalTime = endTime - startTime;
-        System.out.println("Takes: " + totalTime/1000 + "s");*/
     }
 
+    /**
+     * Generate an int range stream for further processing.
+     * @param start the initial value.
+     * @param end the end bound.
+     * @return
+     */
     static Stream<BigInteger> populateList(int start, int end){
 
         return IntStream.range(start, end).mapToObj((num)->BigInteger.valueOf(num));
 
     }
-
-    private static class Task implements Callable<BigInteger>{
-
-        int start, end;
-
-        Task(int start, int end){
-            this.start = start;
-            this.end = end;
-        }
-
-        @Override
-        public BigInteger call() throws Exception {
-            BigInteger sum = BigInteger.ZERO;
-
-            for(int i = start; i<=end; i++) {
-                if (i == 1) continue;
-
-                int margin = i - C;
-
-                if (margin > 0) {
-                    sum = sum.add(populateList(margin, i).parallel().reduce(BigInteger.ONE, (x, y) -> x.multiply(y)));
-                } else {
-                    sum = sum.add(populateList(1, i).parallel().reduce(BigInteger.ONE, (x, y) -> x.multiply(y)));
-                }
-            }
-
-            return sum;
-        }
-    }
-
 }
